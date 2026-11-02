@@ -54,6 +54,13 @@ internal static class ChestListConfig
 		MaxPanelWidth = config.BindConfigInOrder("UI", "MaxPanelWidth", 470f, "Maximum overlay panel width in UI pixels. Longer item names are clipped beyond this.", synced: false, sectionOrder: true, settingOrder: true, acceptableValues: new AcceptableValueRange<float>(250f, 800f));
 
         RemoveOrphanedEntries(config);
+
+        // Decimal settings rounded (and kept in range) whichever editor sets them
+        MagicMike.ModSettings.ConfigRounding.RoundAll(config);
+        MagicMike.ModSettings.ConfigRounding.Round(MinPanelWidth, 0);
+        MagicMike.ModSettings.ConfigRounding.Round(MaxPanelWidth, 0);
+        MagicMike.ModSettings.ConfigRounding.Round(UiPositionX, 3);
+        MagicMike.ModSettings.ConfigRounding.Round(UiPositionY, 3);
     }
 
     private static void RemoveOrphanedEntries(ConfigFile config)
