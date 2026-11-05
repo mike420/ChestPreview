@@ -186,10 +186,17 @@ internal sealed class ChestListOverlay : MonoBehaviour
 		}
 		catch (Exception arg)
 		{
-			ChestPreviewMod.Log?.LogError($"ChestListOverlay tick failed: {arg}");
+			// Update runs every frame, so a persistent failure is logged once per distinct error instead of per frame.
+			string key = arg.GetType().FullName + "|" + arg.StackTrace;
+			if (_loggedTickErrors.Add(key))
+			{
+				ChestPreviewMod.Log?.LogError($"ChestListOverlay tick failed (repeats of this error are not logged): {arg}");
+			}
 			SafeHide();
 		}
 	}
+
+	private static readonly HashSet<string> _loggedTickErrors = new HashSet<string>();
 
 	private void Tick()
 	{
@@ -874,7 +881,7 @@ internal sealed class ChestListOverlay : MonoBehaviour
 		{
 			return;
 		}
-		if (Alive(_title) && (!Alive(_title.font) || IsLiberation(_title.font)))
+		if (Alive(_title) && (!Alive(_title.font) || IsUnusableFont(_title.font)))
 		{
 			ApplyGameFont(_title, isTitle: true);
 		}
@@ -883,7 +890,7 @@ internal sealed class ChestListOverlay : MonoBehaviour
 			TextMeshProUGUI label = _rows[i].Label;
 			if (Alive(label))
 			{
-				if (!Alive(label.font) || IsLiberation(label.font))
+				if (!Alive(label.font) || IsUnusableFont(label.font))
 				{
 					ApplyGameFont(label, isTitle: false);
 				}
@@ -898,14 +905,14 @@ internal sealed class ChestListOverlay : MonoBehaviour
 		float num2 = 0f;
 		float minPanelWidth = GetMinPanelWidth();
 		float maxPanelWidth = GetMaxPanelWidth();
-		if (Alive(_title) && !string.IsNullOrEmpty(_title.text))
+		if (CanMeasure(_title))
 		{
 			num2 = _title.GetPreferredValues(_title.text).x;
 		}
 		for (int i = 0; i < total && i < _rows.Count; i++)
 		{
 			RowWidgets rowWidgets = _rows[i];
-			if (Alive(rowWidgets.Label) && !string.IsNullOrEmpty(rowWidgets.Label.text))
+			if (CanMeasure(rowWidgets.Label))
 			{
 				Vector4 margin = rowWidgets.Label.margin;
 				rowWidgets.Label.margin = Vector4.zero;
@@ -1266,7 +1273,7 @@ internal sealed class ChestListOverlay : MonoBehaviour
 		obj.transform.SetParent(parent, worldPositionStays: false);
 		TextMeshProUGUI textMeshProUGUI = obj.AddComponent<TextMeshProUGUI>();
 		ApplyGameFont(textMeshProUGUI, isTitle);
-		if (!Alive(textMeshProUGUI.font) || IsLiberation(textMeshProUGUI.font))
+		if (!Alive(textMeshProUGUI.font) || IsUnusableFont(textMeshProUGUI.font))
 		{
 			ApplyGameFont(textMeshProUGUI, isTitle);
 		}
@@ -1275,7 +1282,7 @@ internal sealed class ChestListOverlay : MonoBehaviour
 
 	private static void ApplyGameFont(TextMeshProUGUI text, bool isTitle)
 	{
-		if (!Alive(text) || !TryResolveGameFont(out var font, out var material, out var _, out var color) || IsLiberation(font) || !Alive(font))
+		if (!Alive(text) || !TryResolveGameFont(out var font, out var material, out var _, out var color) || IsUnusableFont(font) || !Alive(font))
 		{
 			return;
 		}
@@ -1288,7 +1295,7 @@ internal sealed class ChestListOverlay : MonoBehaviour
 		{
 			text.fontSharedMaterial = font.material;
 		}
-		if (Alive(text.font) && IsLiberation(text.font))
+		if (Alive(text.font) && IsUnusableFont(text.font))
 		{
 			text.font = font;
 			if (Alive(material))
@@ -1307,13 +1314,13 @@ internal sealed class ChestListOverlay : MonoBehaviour
 		material = null;
 		size = _cachedFontSize;
 		color = _cachedFontColor;
-		if (Alive(_cachedFont))
+		if (Alive(_cachedFont) && !IsUnusableFont(_cachedFont))
 		{
 			font = _cachedFont;
 			material = (Alive(_cachedFontMaterial) ? _cachedFontMaterial : _cachedFont.material);
 			size = _cachedFontSize;
 			color = _cachedFontColor;
-			return !IsLiberation(font);
+			return !IsUnusableFont(font);
 		}
 		_cachedFont = null;
 		_cachedFontMaterial = null;
@@ -1331,7 +1338,7 @@ internal sealed class ChestListOverlay : MonoBehaviour
 		TMP_FontAsset[] array = Resources.FindObjectsOfTypeAll<TMP_FontAsset>();
 		foreach (TMP_FontAsset tMP_FontAsset in array)
 		{
-			if (Alive(tMP_FontAsset) && !string.IsNullOrEmpty(tMP_FontAsset.name) && !IsLiberation(tMP_FontAsset))
+			if (Alive(tMP_FontAsset) && !string.IsNullOrEmpty(tMP_FontAsset.name) && !IsUnusableFont(tMP_FontAsset))
 			{
 				string text = tMP_FontAsset.name;
 				if (text.IndexOf("Norse", StringComparison.OrdinalIgnoreCase) >= 0 || text.IndexOf("Averia", StringComparison.OrdinalIgnoreCase) >= 0 || text.IndexOf("Valheim", StringComparison.OrdinalIgnoreCase) >= 0)
@@ -1345,7 +1352,7 @@ internal sealed class ChestListOverlay : MonoBehaviour
 		}
 		foreach (TMP_FontAsset tMP_FontAsset2 in array)
 		{
-			if (Alive(tMP_FontAsset2) && !string.IsNullOrEmpty(tMP_FontAsset2.name) && !IsLiberation(tMP_FontAsset2))
+			if (Alive(tMP_FontAsset2) && !string.IsNullOrEmpty(tMP_FontAsset2.name) && !IsUnusableFont(tMP_FontAsset2))
 			{
 				font = tMP_FontAsset2;
 				material = tMP_FontAsset2.material;
@@ -1358,7 +1365,7 @@ internal sealed class ChestListOverlay : MonoBehaviour
 
 	private static bool TryTakeFont(TMP_Text source, ref TMP_FontAsset font, ref Material material, ref float size, ref Color color)
 	{
-		if (!Alive(source) || !Alive(source.font) || IsLiberation(source.font))
+		if (!Alive(source) || !Alive(source.font) || IsUnusableFont(source.font))
 		{
 			return false;
 		}
@@ -1394,13 +1401,36 @@ internal sealed class ChestListOverlay : MonoBehaviour
 		_cachedFontColor = color;
 	}
 
-	private static bool IsLiberation(TMP_FontAsset font)
+	// Rejects TMP's Liberation fallback and font assets that can't render: some UI mods leave a copy of
+	// Valheim-Norsebold with no material or atlas texture, and TMP throws a NullReferenceException measuring with it.
+	private static bool IsUnusableFont(TMP_FontAsset font)
 	{
 		if (!Alive(font) || string.IsNullOrEmpty(font.name))
 		{
 			return true;
 		}
-		return font.name.IndexOf("Liberation", StringComparison.OrdinalIgnoreCase) >= 0;
+		if (font.name.IndexOf("Liberation", StringComparison.OrdinalIgnoreCase) >= 0)
+		{
+			return true;
+		}
+		return !HasRenderData(font);
+	}
+
+	private static bool HasRenderData(TMP_FontAsset font)
+	{
+		try
+		{
+			return Alive(font) && Alive(font.material) && Alive(font.atlasTexture);
+		}
+		catch (Exception)
+		{
+			return false;
+		}
+	}
+
+	private static bool CanMeasure(TMP_Text text)
+	{
+		return Alive(text) && !string.IsNullOrEmpty(text.text) && HasRenderData(text.font);
 	}
 
 	private static void StretchFull(RectTransform rt)

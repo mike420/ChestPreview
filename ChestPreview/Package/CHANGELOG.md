@@ -7,6 +7,14 @@
 </thead>
 <tbody>
   <tr>
+    <td>1.0.5</td>
+    <td>
+    <ul>
+      <li>Fixed the chest preview never showing, and the log filling with "ChestListOverlay tick failed" errors, when another mod leaves a broken copy of a game font (no atlas texture). Broken fonts are now skipped, and a repeating error is only logged once.</li>
+    </ul>
+    </td>
+  </tr>
+  <tr>
     <td>1.0.4</td>
     <td>
     <ul>

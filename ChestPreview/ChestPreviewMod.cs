@@ -13,7 +13,7 @@ namespace ChestPreview
     internal class ChestPreviewMod : BaseUnityPlugin
     {
         internal const string PluginName = "ChestPreview";
-        internal const string PluginVersion = "1.0.4";
+        internal const string PluginVersion = "1.0.5";
         internal const string PluginAuthor = "MagicMike";
         internal const string PluginGUID = "MagicMike.ChestPreview";
         internal const string PluginLink = "https://discord.gg/mnr36G6J4x";
